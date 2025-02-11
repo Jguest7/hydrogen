@@ -729,7 +729,7 @@ async function promptUpgradeOptions(
 
   return renderSelectPrompt({
     message: `Available Hydrogen versions (current: ${currentVersion})`,
-    choices: choices,
+    choices,
     defaultValue: choices[0]?.value, // Latest version
   });
 }
@@ -777,8 +777,8 @@ async function displayUpgradeSummary({
   const fromToMsg = `${currentPinnedVersion} → ${selectedPinnedVersion}`;
 
   const headline = upgradedDependenciesOnly
-    ? `You've have upgraded Hydrogen ${selectedPinnedVersion} dependencies`
-    : `You've have upgraded from ${fromToMsg}`;
+    ? `You've upgraded Hydrogen ${selectedPinnedVersion} dependencies`
+    : `You've upgraded from ${fromToMsg}`;
 
   const packageManager = await getPackageManager(appPath);
 

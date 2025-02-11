@@ -51,18 +51,32 @@ import type {
 import {createCustomerAccountHelper, URL_TYPE} from './customer-account-helper';
 import {warnOnce} from '../utils/warning';
 
-const DEFAULT_LOGIN_URL = '/account/login';
-const DEFAULT_AUTH_URL = '/account/authorize';
-const DEFAULT_REDIRECT_PATH = '/account';
-
-function defaultAuthStatusHandler(request: CrossRuntimeRequest) {
-  if (!request.url) return DEFAULT_LOGIN_URL;
+function defaultAuthStatusHandler(
+  request: CrossRuntimeRequest,
+  defaultLoginUrl: string,
+) {
+  if (!request.url) return defaultLoginUrl;
 
   const {pathname} = new URL(request.url);
 
+  /**
+   * Remix (single-fetch) request objects have different url
+   * paths when soft navigating. Examples:
+   *
+   *    /_root.data          - home page
+   *    /collections.data    - collections page
+   *
+   * These url annotations needs to be cleaned up before constructing urls to be passed as
+   * GET parameters for customer login url
+   */
+  const cleanedPathname = pathname
+    .replace(/\.data$/, '')
+    .replace(/\/_root$/, '/')
+    .replace(/(.+)\/$/, '$1');
+
   const redirectTo =
-    DEFAULT_LOGIN_URL +
-    `?${new URLSearchParams({return_to: pathname}).toString()}`;
+    defaultLoginUrl +
+    `?${new URLSearchParams({return_to: cleanedPathname}).toString()}`;
 
   return redirect(redirectTo);
 }
@@ -70,7 +84,6 @@ function defaultAuthStatusHandler(request: CrossRuntimeRequest) {
 export function createCustomerAccountClient({
   session,
   customerAccountId,
-  customerAccountUrl: deprecatedCustomerAccountUrl,
   shopId,
   customerApiVersion = DEFAULT_CUSTOMER_API_VERSION,
   request,
@@ -78,7 +91,9 @@ export function createCustomerAccountClient({
   authUrl,
   customAuthStatusHandler,
   logErrors = true,
-  unstableB2b = false,
+  loginPath = '/account/login',
+  authorizePath = '/account/authorize',
+  defaultRedirectPath = '/account',
 }: CustomerAccountOptions): CustomerAccount {
   if (customerApiVersion !== DEFAULT_CUSTOMER_API_VERSION) {
     console.warn(
@@ -98,15 +113,9 @@ export function createCustomerAccountClient({
     );
   }
 
-  if (!!deprecatedCustomerAccountUrl && !shopId) {
-    warnOnce(
-      '[h2:warn:createCustomerAccountClient] The `customerAccountUrl` option is deprecated and will be removed in a future version. Please remove `customerAccountUrl` and supply a `shopId: env.SHOP_ID` option instead.\n\nIf using `createHydrogenContext`, ensure there is a SHOP_ID defined in your local .env file.',
-    );
-  }
-
   const authStatusHandler = customAuthStatusHandler
     ? customAuthStatusHandler
-    : () => defaultAuthStatusHandler(request);
+    : () => defaultAuthStatusHandler(request, loginPath);
 
   const requestUrl = new URL(request.url);
   const httpsOrigin =
@@ -115,13 +124,12 @@ export function createCustomerAccountClient({
       : requestUrl.origin;
   const redirectUri = ensureLocalRedirectUrl({
     requestUrl: httpsOrigin,
-    defaultUrl: DEFAULT_AUTH_URL,
+    defaultUrl: authorizePath,
     redirectUrl: authUrl,
   });
 
   const getCustomerAccountUrl = createCustomerAccountHelper(
     customerApiVersion,
-    deprecatedCustomerAccountUrl,
     shopId,
   );
 
@@ -233,8 +241,7 @@ export function createCustomerAccountClient({
   }
 
   async function isLoggedIn() {
-    if (!shopId && (!deprecatedCustomerAccountUrl || !customerAccountId))
-      return false;
+    if (!shopId) return false;
 
     const customerAccount = session.get(CUSTOMER_ACCOUNT_SESSION_KEY);
     const accessToken = customerAccount?.accessToken;
@@ -260,7 +267,6 @@ export function createCustomerAccountClient({
           stackInfo,
           ...getDebugHeaders(request),
         },
-        exchangeForStorefrontCustomerAccessToken,
       });
     } catch {
       return false;
@@ -319,46 +325,14 @@ export function createCustomerAccountClient({
   }
 
   async function getBuyer() {
-    // check loggedIn and trigger refresh if expire
-    const hasAccessToken = await isLoggedIn();
+    // get access token and trigger refresh if expire
+    const customerAccessToken = await getAccessToken();
 
-    if (!hasAccessToken) {
+    if (!customerAccessToken) {
       return;
     }
 
-    return session.get(BUYER_SESSION_KEY);
-  }
-
-  async function exchangeForStorefrontCustomerAccessToken() {
-    if (!unstableB2b) {
-      return;
-    }
-
-    const STOREFRONT_CUSTOMER_ACCOUNT_TOKEN_CREATE = `#graphql
-      mutation storefrontCustomerAccessTokenCreate {
-        storefrontCustomerAccessTokenCreate {
-          customerAccessToken
-        }
-      }
-    `;
-
-    // Remove hard coded type later
-    const {data} = (await mutate(STOREFRONT_CUSTOMER_ACCOUNT_TOKEN_CREATE)) as {
-      data: {
-        storefrontCustomerAccessTokenCreate?: {
-          customerAccessToken?: string;
-        };
-      };
-    };
-
-    const customerAccessToken =
-      data?.storefrontCustomerAccessTokenCreate?.customerAccessToken;
-
-    if (customerAccessToken) {
-      setBuyer({
-        customerAccessToken,
-      });
-    }
+    return {...session.get(BUYER_SESSION_KEY), customerAccessToken};
   }
 
   return {
@@ -400,7 +374,7 @@ export function createCustomerAccountClient({
         redirectPath:
           getRedirectUrl(request.url) ||
           getHeader(request, 'Referer') ||
-          DEFAULT_REDIRECT_PATH,
+          defaultRedirectPath,
       });
 
       loginUrl.searchParams.append('code_challenge', challenge);
@@ -563,12 +537,24 @@ export function createCustomerAccountClient({
         idToken: id_token,
       });
 
-      await exchangeForStorefrontCustomerAccessToken();
-
-      return redirect(redirectPath || DEFAULT_REDIRECT_PATH);
+      return redirect(redirectPath || defaultRedirectPath);
     },
-    UNSTABLE_setBuyer: setBuyer,
-    UNSTABLE_getBuyer: getBuyer,
+    setBuyer,
+    getBuyer,
+    UNSTABLE_setBuyer: (buyer: Buyer) => {
+      warnOnce(
+        '[h2:warn:customerAccount] `customerAccount.UNSTABLE_setBuyer` is deprecated. Please use `customerAccount.setBuyer`.',
+      );
+
+      setBuyer(buyer);
+    },
+    UNSTABLE_getBuyer: () => {
+      warnOnce(
+        '[h2:warn:customerAccount] `customerAccount.UNSTABLE_getBuyer` is deprecated. Please use `customerAccount.getBuyer`.',
+      );
+
+      return getBuyer();
+    },
   };
 }
 

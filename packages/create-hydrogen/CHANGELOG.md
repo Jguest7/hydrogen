@@ -1,5 +1,31 @@
 # @shopify/create-hydrogen
 
+## 5.0.15
+
+### Patch Changes
+
+- Bump cli version ([#2732](https://github.com/Shopify/hydrogen/pull/2732)) by [@wizardlyhel](https://github.com/wizardlyhel)
+
+- Bump SFAPI to 2025-01 ([#2715](https://github.com/Shopify/hydrogen/pull/2715)) by [@rbshop](https://github.com/rbshop)
+
+## 5.0.14
+
+### Patch Changes
+
+- Bump cli version ([#2694](https://github.com/Shopify/hydrogen/pull/2694)) by [@wizardlyhel](https://github.com/wizardlyhel)
+
+## 5.0.13
+
+### Patch Changes
+
+- Prevent scroll reset on variant change ([#2672](https://github.com/Shopify/hydrogen/pull/2672)) by [@scottdixon](https://github.com/scottdixon)
+
+## 5.0.12
+
+### Patch Changes
+
+- Update to skeleton template by [@wizardlyhel](https://github.com/wizardlyhel)
+
 ## 5.0.11
 
 ### Patch Changes

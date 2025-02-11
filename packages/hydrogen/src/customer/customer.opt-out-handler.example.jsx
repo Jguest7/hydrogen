@@ -22,8 +22,8 @@ export default {
       waitUntil: (p) => executionContext.waitUntil(p),
       /* Public Customer Account API client ID for your store */
       customerAccountId: env.PUBLIC_CUSTOMER_ACCOUNT_ID,
-      /* Public account URL for your store */
-      customerAccountUrl: env.PUBLIC_CUSTOMER_ACCOUNT_URL,
+      /* Shop Id */
+      shopId: env.SHOP_ID,
       request,
       session,
       customAuthStatusHandler,
@@ -101,7 +101,6 @@ import {
   isRouteErrorResponse,
   useLocation,
 } from '@remix-run/react';
-import {json} from '@shopify/remix-oxygen';
 
 export async function loader({context}) {
   if (!(await context.customerAccount.isLoggedIn())) {
@@ -121,7 +120,7 @@ export async function loader({context}) {
     `,
   );
 
-  return json({customer: data.customer});
+  return {customer: data.customer};
 }
 
 export function ErrorBoundary() {

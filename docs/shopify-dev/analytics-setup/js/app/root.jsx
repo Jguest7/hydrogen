@@ -5,7 +5,6 @@ import {
   Analytics,
   // [END import]
 } from '@shopify/hydrogen';
-import {defer} from '@shopify/remix-oxygen';
 import {
   Links,
   Meta,
@@ -19,7 +18,6 @@ import {
 import favicon from '~/assets/favicon.svg';
 import resetStyles from '~/styles/reset.css?url';
 import appStyles from '~/styles/app.css?url';
-import tailwindCss from './styles/tailwind.css?url';
 import {PageLayout} from '~/components/PageLayout';
 import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
 
@@ -46,11 +44,18 @@ export const shouldRevalidate = ({
   return defaultShouldRevalidate;
 };
 
+/**
+ * The main and reset stylesheets are added in the Layout component
+ * to prevent a bug in development HMR updates.
+ *
+ * This avoids the "failed to execute 'insertBefore' on 'Node'" error
+ * that occurs after editing and navigating to another page.
+ *
+ * It's a temporary fix until the issue is resolved.
+ * https://github.com/remix-run/remix/issues/9242
+ */
 export function links() {
   return [
-    {rel: 'stylesheet', href: tailwindCss},
-    {rel: 'stylesheet', href: resetStyles},
-    {rel: 'stylesheet', href: appStyles},
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',
@@ -77,7 +82,7 @@ export async function loader(args) {
   const {storefront, env} = args.context;
   // [END env]
 
-  return defer({
+  return {
     ...deferredData,
     ...criticalData,
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
@@ -97,7 +102,7 @@ export async function loader(args) {
       language: args.context.storefront.i18n.language,
     },
      // [END consent]
-  });
+  };
 }
 
 /**
@@ -163,6 +168,8 @@ export function Layout({children}) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <link rel="stylesheet" href={resetStyles}></link>
+        <link rel="stylesheet" href={appStyles}></link>
         <Meta />
         <Links />
       </head>

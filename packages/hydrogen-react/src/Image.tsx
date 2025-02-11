@@ -1,6 +1,5 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable hydrogen/prefer-image-component */
 import * as React from 'react';
 import type {PartialDeep} from 'type-fest';
 import type {Image as ImageType} from './storefront-api-types.js';
@@ -67,7 +66,7 @@ type HydrogenImageBaseProps = {
    * @defaultValue `center`
    */
   crop?: Crop;
-  /** Data mapping to the [Storefront API `Image`](https://shopify.dev/docs/api/storefront/2024-10/objects/Image) object. Must be an Image object.
+  /** Data mapping to the [Storefront API `Image`](https://shopify.dev/docs/api/storefront/2025-01/objects/Image) object. Must be an Image object.
    *
    * @example
    * ```
