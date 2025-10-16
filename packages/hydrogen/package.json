@@ -86,10 +86,10 @@
     "@testing-library/react": "^14.0.0",
     "@types/source-map-support": "^0.5.10",
     "formdata-polyfill": "^4.0.10",
-    "happy-dom": "^17.0.0",
+    "happy-dom": "^20.0.2",
     "react": "^18.2.0",
     "schema-dts": "^1.1.0",
-    "vitest": "^1.0.4"
+    "vitest": "^1.6.1"
   },
   "peerDependencies": {
     "@remix-run/react": "^2.10.0",
